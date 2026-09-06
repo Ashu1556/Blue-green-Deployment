@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongo:
+    image: mongo:7.0-alpine
+    container_name: registration-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: registration-backend
+    environment:
+      PORT: 5000
+      MONGO_URI: mongodb://admin:password@mongo:27017/registration-db?authSource=admin
+      NODE_ENV: development
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Frontend Blue (Basic UI)
+  frontend-blue:
+    build:
+      context: ./frontend-blue
+      dockerfile: Dockerfile
+    container_name: registration-frontend-blue
+    environment:
+      PORT: 3100
+      BACKEND_URL: http://backend:5000
+    ports:
+      - "3100:3100"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend-blue:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3100/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Frontend Green (Enhanced UI)
+  frontend-green:
+    build:
+      context: ./frontend-green
+      dockerfile: Dockerfile
+    container_name: registration-frontend-green
+    environment:
+      PORT: 3200
+      BACKEND_URL: http://backend:5000
+    ports:
+      - "3200:3200"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend-green:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3200/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongo_data:
+
+networks:
+  app-network:
+    driver: bridge

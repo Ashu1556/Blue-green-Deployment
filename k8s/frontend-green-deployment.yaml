@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-green
+  namespace: registration-app
+  labels:
+    app: frontend
+    version: enhanced
+    deployment: green
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+      deployment: green
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: frontend
+        deployment: green
+        version: enhanced
+    spec:
+      containers:
+      - name: frontend-green
+        image: localhost:5000/registration-frontend-green:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3200
+        envFrom:
+        - configMapRef:
+            name: frontend-green-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3200
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-green
+  namespace: registration-app
+  labels:
+    app: frontend
+    version: enhanced
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+    deployment: green
+  ports:
+  - name: http
+    port: 3200
+    targetPort: 3200
+    protocol: TCP

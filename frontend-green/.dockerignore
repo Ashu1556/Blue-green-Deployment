@@ -1,0 +1,17 @@
+node_modules/
+npm-debug.log*
+.git
+.gitignore
+.env.*.local
+README.md
+DEPLOYMENT_GUIDE.md
+QUICK_START_LOCAL.md
+QUICK_START_K8S.md
+IMPLEMENTATION.md
+k8s/
+scripts/
+.DS_Store
+.idea/
+.vscode/
+*.md
+LICENSE

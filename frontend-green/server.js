@@ -17,6 +17,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Green frontend server running on port ${PORT}`);
 });
